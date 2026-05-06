@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MobileShell from "@/components/layout/MobileShell";
 import BottomNav from "@/components/layout/BottomNav";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import { AppLanguage, getStoredLanguage, ui } from "@/lib/i18n";
 
-const BACKEND_URL ="http://127.0.0.1:8000";
+const BACKEND_URL = "http://127.0.0.1:8000";
+
 function getAuthToken() {
   if (typeof window === "undefined") return "";
   return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
@@ -15,6 +16,8 @@ function getAuthToken() {
 
 export default function QueryPage() {
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   const [lang, setLang] = useState<AppLanguage>("en");
   const [companyName, setCompanyName] = useState("");
   const [question, setQuestion] = useState("");
@@ -26,6 +29,15 @@ export default function QueryPage() {
     const savedCompany = localStorage.getItem("query_company_name") || "";
     setCompanyName(savedCompany);
   }, []);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    const nextHeight = Math.min(Math.max(textarea.scrollHeight, 120), 320);
+    textarea.style.height = `${nextHeight}px`;
+  }, [question]);
 
   const t = ui[lang];
 
@@ -79,6 +91,7 @@ export default function QueryPage() {
       }
 
       sessionStorage.setItem("query_result", JSON.stringify(data));
+      sessionStorage.removeItem("selected_query_history");
       router.push("/answer");
     } catch (err: any) {
       setError(err.message || "Something went wrong while asking the question.");
@@ -93,7 +106,7 @@ export default function QueryPage() {
         <main className="mx-auto w-full max-w-[980px] px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-center justify-between">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/")}
               className="text-[14px] font-medium text-[#2563ff]"
             >
               ← Back
@@ -128,11 +141,12 @@ export default function QueryPage() {
 
           <div className="mt-6 rounded-[20px] border border-slate-200 bg-white shadow-sm">
             <textarea
+              ref={textareaRef}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Example: What is the receivable amount we have?"
-              rows={8}
-              className="w-full resize-none rounded-t-[20px] border-0 bg-transparent px-5 py-5 text-[18px] text-[#0f172a] outline-none"
+              rows={1}
+              className="min-h-[120px] w-full resize-none overflow-y-auto rounded-t-[20px] border-0 bg-transparent px-5 py-5 text-[18px] text-[#0f172a] outline-none"
             />
             <div className="flex items-center justify-between rounded-b-[20px] border-t border-slate-100 px-5 py-3 text-[#94a3b8]">
               <div className="text-[12px]">Source: your saved documents only</div>
